@@ -1,0 +1,30 @@
+# Root .htaccess - Protect non-public directories
+# Deny access to sensitive folders
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Block access to sensitive directories
+    RewriteRule ^(app|config|storage|logs|vendor|backup)(/.*)?$ - [F,L]
+    
+    # Block access to hidden files and dotfiles
+    RewriteRule (^\.|/\.) - [F,L]
+    
+    # Block access to .env, .git, composer files
+    RewriteRule ^(\.env|\.git|composer\.(json|lock)) - [F,L]
+</IfModule>
+
+# Fallback for non-mod_rewrite environments
+<IfModule !mod_rewrite.c>
+    <FilesMatch "^\.">
+        Order Allow,Deny
+        Deny from all
+    </FilesMatch>
+    
+    <FilesMatch "^(composer\.|\.env)">
+        Order Allow,Deny
+        Deny from all
+    </FilesMatch>
+</IfModule>
+
+# Prevent directory listing
+Options -Indexes

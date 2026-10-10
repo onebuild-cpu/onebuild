@@ -1,0 +1,236 @@
+/* Dashboard Sidebar Styles */
+.sidebar {
+    min-height: calc(100vh - 56px);
+    border-right: 1px solid #dee2e6;
+    background-color: #f8f9fa;
+    transition: all 0.3s ease;
+    z-index: 100;
+}
+
+.sidebar .nav-link {
+    color: #333;
+    padding: 0.75rem 1rem;
+    border-radius: 0.375rem;
+    margin: 0.25rem 0.5rem;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.sidebar .nav-link:hover,
+.sidebar .nav-link.active {
+    color: #0d6efd;
+    background-color: rgba(13, 110, 253, 0.1);
+}
+
+.sidebar .nav-link i {
+    width: 1.25rem;
+    text-align: center;
+    margin-right: 0.5rem;
+}
+.navbar-toggler-icon-2 {
+    display: inline-block;
+    width: 1.5em;
+    height: 1.5em;
+    vertical-align: middle;
+    background-image: var(--bs-navbar-toggler-icon-bg);
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 100%;
+}
+
+/* Mobile Sidebar Styles */
+@media (max-width: 767.98px) {
+    .sidebar {
+        position: fixed;
+        top: 56px;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1030;
+        min-height: calc(100vh - 56px);
+        border-right: none;
+        border-bottom: 1px solid #dee2e6;
+        transform: translateX(-100%);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    
+    .sidebar.show {
+        transform: translateX(0);
+    }
+    
+    .sidebar.collapse:not(.show) {
+        display: block;
+    }
+    
+    .sidebar-overlay {
+        position: fixed;
+        top: 56px;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1020;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+    }
+    
+    .sidebar-overlay.show {
+        opacity: 1;
+        visibility: visible;
+    }
+}
+
+/* Desktop: always show sidebar */
+@media (min-width: 768px) {
+    .sidebar {
+        position: relative;
+        transform: none !important;
+        display: block !important;
+    }
+    
+    .sidebar-toggle {
+        display: none !important;
+    }
+    
+    .sidebar-overlay {
+        display: none !important;
+    }
+}
+
+/* Toggle button */
+.sidebar-toggle {
+    background: none;
+    border: none;
+    color: #fff !important;
+    padding: 0.5rem;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+}
+
+.sidebar-toggle:hover {
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.sidebar-toggle i {
+    font-size: 1.5rem;
+    font-weight: normal;
+}
+
+/* Main content adjustment */
+main {
+    min-height: calc(100vh - 56px);
+}
+
+/* Card styles */
+.card {
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.card-header {
+    background-color: #f8f9fc;
+    border-bottom: 1px solid #e3e6f0;
+    border-radius: 0.5rem 0.5rem 0 0 !important;
+    font-weight: 600;
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+/* Stats cards */
+.stat-card {
+    border-left: 0.25rem solid;
+    transition: transform 0.2s;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+}
+
+.stat-card .stat-icon {
+    font-size: 2.5rem;
+    opacity: 0.8;
+}
+
+/* Table styles */
+.table-responsive {
+    border-radius: 0.5rem;
+}
+
+.table th {
+    font-weight: 600;
+    background-color: #f8f9fc;
+    border-top: none;
+}
+
+.table-hover tbody tr:hover {
+    background-color: #f8f9fc;
+}
+
+/* Badge styles */
+.badge {
+    font-size: 0.75rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
+}
+
+/* Quick action buttons */
+.quick-action-btn {
+    transition: all 0.2s;
+    border-radius: 0.5rem;
+}
+
+.quick-action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.quick-action-btn i {
+    transition: transform 0.2s;
+}
+
+.quick-action-btn:hover i {
+    transform: scale(1.1);
+}
+
+/* Animation */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Scrollbar styling */
+.sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+    background: #a1a1a1;
+}
+
+/* Table column width utilities */
+.col-width-120 {
+    width: 120px;
+}

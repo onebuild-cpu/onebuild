@@ -1,0 +1,77 @@
+# =========================
+# General rules (ALL bots)
+# =========================
+User-agent: *
+Disallow: /admin/
+Disallow: /login
+Disallow: /logout
+Disallow: /register
+
+Sitemap: https://crm.verola.co.test/sitemap.xml
+Security: https://crm.verola.co.test/security.txt
+
+
+# =========================
+# OpenAI (ChatGPT)
+# =========================
+User-agent: GPTBot
+Disallow: /admin/
+Disallow: /login
+Disallow: /logout
+Disallow: /register
+
+
+# =========================
+# Google AI / Extended usage
+# =========================
+User-agent: Google-Extended
+Disallow: /admin/
+Disallow: /login
+Disallow: /logout
+Disallow: /register
+
+User-agent: CloudVertexBot
+Disallow: /admin/
+Disallow: /login
+Disallow: /logout
+Disallow: /register
+
+
+# =========================
+# Anthropic (Claude)
+# =========================
+User-agent: ClaudeBot
+Disallow: /admin/
+Disallow: /login
+Disallow: /logout
+Disallow: /register
+
+
+# =========================
+# Perplexity AI
+# =========================
+User-agent: PerplexityBot
+Disallow: /admin/
+Disallow: /login
+Disallow: /logout
+Disallow: /register
+
+
+# =========================
+# Apple Intelligence
+# =========================
+User-agent: Applebot-Extended
+Disallow: /admin/
+Disallow: /login
+Disallow: /logout
+Disallow: /register
+
+
+# =========================
+# Common Crawl (used by many LLMs)
+# =========================
+User-agent: CCBot
+Disallow: /admin/
+Disallow: /login
+Disallow: /logout
+Disallow: /register

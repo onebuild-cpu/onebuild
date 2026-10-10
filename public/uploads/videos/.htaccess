@@ -1,0 +1,14 @@
+# Security: Prevent direct access to uploaded files
+# Allow only static files
+<FilesMatch "\.(php|php[0-9]|phtml|pl|py|rb|sh|cgi|exe|dll|so)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# Disable PHP execution
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+
+# Prevent directory listing
+Options -Indexes

@@ -1,0 +1,58 @@
+Options -Indexes
+
+<IfModule mod_headers.c>
+    # Remove server identification
+    Header unset X-Powered-By
+    
+    # Default no-cache for dynamic content
+    Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+    Header set Pragma "no-cache"
+    Header set Expires 0
+
+    # Caching for static assets (1 day)
+    <FilesMatch "\.(css|js|jpg|jpeg|png|gif|webp|svg|ico|woff|woff2|ttf|eot)$">
+        Header set Cache-Control "public, max-age=86400"
+    </FilesMatch>
+
+    # Security headers are handled by PHP FrameworkHeader.php
+</IfModule>
+
+# Simple compression
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE text/html
+</IfModule>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Deny access to sensitive folders outside public/
+    RewriteRule ^(app|backup|config|process|vendor|views)(/.*)?$ - [F,L]
+
+    # If someone visits /public/... redirect to root
+    RewriteCond %{THE_REQUEST} \s/public/([^\s?]*) [NC]
+    RewriteRule ^public/(.*)$ /$1 [L,R=301]
+
+    # Allow direct access to existing files and folders (CSS, JS, fonts, images, etc.)
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Redirect Trailing Slashes If Not A Folder...
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^(.*)/$ /$1 [L,R=301]
+
+    # Handle Front Controller (all other requests go to index.php)
+    RewriteRule ^ index.php [L,QSA]
+
+    # Handle Authorization Header
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+</IfModule>
+
+# Prevent access to sensitive files
+<FilesMatch "\.(htaccess|htpasswd|ini|log|sh|inc|bak|sql)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>

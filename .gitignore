@@ -1,0 +1,43 @@
+# Environment files
+.env
+.env.local
+.env.production
+
+# Database backups
+*.sql
+*.dump
+
+# Logs
+logs/*.log
+*.log
+
+# Cache files
+cache/
+tmp/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Vendor dependencies
+vendor/
+
+# User uploads (optional - you might want to track some)
+public/uploads/media/*
+!public/uploads/media/.htaccess
+!public/uploads/media/noimage*.webp
+
+# Backup files
+*.bak
+*.backup
+
+# Security audit files (remove after review)
+public/security-audit-report.php
+public/test-*.html
+public/test-*.php
