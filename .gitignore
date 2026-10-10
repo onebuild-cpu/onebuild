@@ -8,7 +8,11 @@
 *.dump
 
 # Logs
-logs/*.log
+logs/*
+!logs/security/
+logs/security/*
+!logs/security/.htaccess
+
 *.log
 
 # Cache files
