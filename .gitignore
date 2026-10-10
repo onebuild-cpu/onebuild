@@ -58,3 +58,12 @@ storage/logs/*
 
 storage/tmp/*
 !storage/tmp/.gitkeep
+
+dump_file.py
+project_dump.md
+project_dump*.md
+
+
+# User uploads — never commit actual files, only .htaccess gatekeepers
+public/uploads/**/*
+!public/uploads/**/.htaccess

@@ -21,6 +21,11 @@ $currentPage = $currentPage ?? 'index';
                 </a>
             </li>
             <li class="nav-item">
+                <a class="nav-link <?= $currentPage === 'products' ? 'active' : '' ?>" href="<?= $base ?>/products">
+                    <i class="bi bi-box-seam"></i> Products
+                </a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link" href="<?= $base ?>/logout">
                     <i class="bi bi-box-arrow-right"></i> Sign Out
                 </a>

@@ -86,6 +86,14 @@ $router->addRoute('logout', 'AuthController', 'logout');          // GET /logout
 $router->addRoute('dashboard', 'DashboardController', 'index');
 $router->addRoute('dashboard/profile', 'DashboardController', 'profile');
 
+// Products CRUD
+$router->addRoute('products',              'ProductController', 'index');
+$router->addRoute('products/create',       'ProductController', 'create');
+$router->addRoute('products/store',        'ProductController', 'store');
+$router->addRoute('products/edit/(\d+)',   'ProductController', 'edit');
+$router->addRoute('products/update/(\d+)', 'ProductController', 'update');
+$router->addRoute('products/delete/(\d+)', 'ProductController', 'delete');
+
 // Dispatch request - FIXED FOR SUBDIRECTORY
 $requestUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
