@@ -29,7 +29,7 @@ $requestUri = $GLOBALS['requestUri'] ?? '';
                     <a class="nav-link <?= ($requestUri === '' || $requestUri === '/') ? 'active' : '' ?>" href="<?= $base ?>">Home</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/products">Products</a>
+                    <a class="nav-link <?= $requestUri === 'products' ? 'active' : '' ?>" href="<?= $base ?>/products">Products</a>
                 </li>
                 <?php if (!isset($_SESSION['user_id']) || $_SESSION['user_id'] == 0): ?>
                     <li class="nav-item">
