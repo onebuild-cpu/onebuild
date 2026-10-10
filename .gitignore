@@ -41,3 +41,15 @@ public/uploads/media/*
 public/security-audit-report.php
 public/test-*.html
 public/test-*.php
+
+# Session files
+storage/sessions/*
+!storage/sessions/.gitkeep
+
+# Also ignore other storage subfolders if they exist
+storage/cache/*
+!storage/cache/.gitkeep
+storage/logs/*
+!storage/logs/.gitkeep
+storage/tmp/*
+!storage/tmp/.gitkeep
