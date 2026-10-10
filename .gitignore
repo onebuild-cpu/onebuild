@@ -7,6 +7,9 @@
 *.sql
 *.dump
 
+# But track schema files in /database
+!database/*.sql
+
 # Logs
 logs/*
 !logs/security/
