@@ -68,7 +68,11 @@ $products = $products ?? [];
                                         <?php endif; ?>
                                     </td>
                                     <td><?= htmlspecialchars($p['sku']) ?></td>
-                                    <td><?= htmlspecialchars($p['name']) ?></td>
+                                    <td>
+                                        <a href="<?= $base ?>/product/<?= htmlspecialchars($p['slug']) ?>" target="_blank">
+                                            <?= htmlspecialchars($p['name']) ?>
+                                        </a>
+                                    </td>
                                     <td><?= htmlspecialchars($p['variant']) ?></td>
                                     <td>$<?= number_format((float) $p['price'], 2) ?></td>
                                     <td>

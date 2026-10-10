@@ -112,9 +112,13 @@ class ProductController extends Controller
         }
 
         // 3. Insert into DB
+        // Generate slug from the product name
+        $slug = $this->model->generateSlug($data['name']);
+
         try {
             $this->model->insert([
                 'sku'             => $data['sku'],
+                'slug'            => $slug,
                 'barcode'         => $data['barcode'] !== '' ? $data['barcode'] : null,
                 'name'            => $data['name'],
                 'description'     => $data['description'],
@@ -236,9 +240,13 @@ class ProductController extends Controller
         }
 
         // 3. Update DB
+        // Regenerate slug if name changed (or first time)
+        $slug = $this->model->generateSlug($data['name'], (int) $id);
+
         try {
             $this->model->update((int) $id, [
                 'sku'         => $data['sku'],
+                'slug'        => $slug,
                 'barcode'     => $data['barcode'] !== '' ? $data['barcode'] : null,
                 'name'        => $data['name'],
                 'description' => $data['description'],
@@ -300,5 +308,24 @@ class ProductController extends Controller
         }
 
         $this->redirect('/products');
+    }
+
+    /** GET /product/{slug} — public product detail page */
+    public function show(string $slug): void
+    {
+        // Note: no requireLogin() — this is public.
+
+        $product = $this->model->findBySlug($slug);
+        if (!$product) {
+            http_response_code(404);
+            echo 'Product not found.';
+            return;
+        }
+
+        $this->view('products/show', [
+            'pageTitle'       => $product['name'],
+            'metaDescription' => mb_substr(strip_tags($product['description']), 0, 160),
+            'product'         => $product,
+        ]);
     }
 }

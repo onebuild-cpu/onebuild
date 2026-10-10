@@ -93,6 +93,7 @@ $router->addRoute('products/store',        'ProductController', 'store');
 $router->addRoute('products/edit/(\d+)',   'ProductController', 'edit');
 $router->addRoute('products/update/(\d+)', 'ProductController', 'update');
 $router->addRoute('products/delete/(\d+)', 'ProductController', 'delete');
+$router->addRoute('product/([a-z0-9\-]+)', 'ProductController', 'show');
 
 // Dispatch request - FIXED FOR SUBDIRECTORY
 $requestUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
