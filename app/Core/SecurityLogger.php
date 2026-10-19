@@ -11,7 +11,7 @@ class SecurityLogger {
     private int $maxFileSize = 10485760; // 10MB
 
     public function __construct() {
-        $baseDir = __DIR__ . '/../../../storage/logs/security';
+        $baseDir = __DIR__ . '/../../storage/logs/security';
         $this->logDir = $baseDir;
         $this->logFile = $this->logDir . '/security.log';
         

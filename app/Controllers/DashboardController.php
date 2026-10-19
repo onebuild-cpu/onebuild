@@ -4,6 +4,7 @@ namespace App\Controllers;
 use PDO;
 use App\Core\Controller;
 use App\Models\UserModel;
+use Exception;
 
 class DashboardController extends Controller
 {
@@ -36,6 +37,7 @@ class DashboardController extends Controller
         $success = '';
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            \App\Core\CsrfProtection::requireValidToken();
             $action = $_POST['action'] ?? '';
 
             try {

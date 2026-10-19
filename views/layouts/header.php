@@ -7,13 +7,14 @@ $nonce = '';
 if (isset($GLOBALS['csp_nonce'])) {
     $nonce = $GLOBALS['csp_nonce'];
 }
-$pageTitle = 'OneBuild PHP MVC Framework';
-if (isset($pageTitle)) {
-    $pageTitle = $pageTitle;
+// Set a default page title only if the controller did not provide one
+if (!isset($pageTitle)) {
+    $pageTitle = 'OneBuild PHP MVC Framework';
 }
-$metaDescription = 'OneBuild Description';
-if (isset($metaDescription)) {
-    $metaDescription = $metaDescription;
+
+// Set a default meta description only if the controller did not provide one
+if (!isset($metaDescription)) {
+     $metaDescription = 'OneBuild Description';
 }
 ?>
 <!DOCTYPE html>
@@ -34,19 +35,9 @@ if (isset($metaDescription)) {
     <meta name="csrf-token" content="<?= \App\Core\CsrfProtection::getToken() ?>">
 
 </head>
-<body>
-    <?php if (isset($_SESSION['success'])): ?>
-        <div class="alert alert-success">
-            <?= htmlspecialchars($_SESSION['success']) ?>
-        </div>
-        <?php unset($_SESSION['success']); ?>
-    <?php endif; ?>
-    
-    <?php if (isset($_SESSION['error'])): ?>
-        <div class="alert alert-error">
-            <?= htmlspecialchars($_SESSION['error']) ?>
-        </div>
-        <?php unset($_SESSION['error']); ?>
-    <?php endif; ?>
-    
-    <main class="main-content">
+<?php
+if (!isset($bodyClass)) {
+    $bodyClass = '';
+}
+?>
+<body class="<?= htmlspecialchars($bodyClass) ?>">

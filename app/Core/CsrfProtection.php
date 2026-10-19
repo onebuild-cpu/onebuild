@@ -85,22 +85,30 @@ class CsrfProtection {
     }
     
     /**
-     * Check and validate CSRF token from request
+     * Check and validate CSRF token from the request.
+     * Only accepts the token from the POST body or the X-CSRF-Token header.
+     * GET-based tokens are rejected because they leak via Referer, history,
+     * bookmarks, and access logs.
      */
     public static function checkRequest(): bool {
         $token = '';
+
+        // 1. Prefer the token submitted in a form body.
         if (isset($_POST['csrf'])) {
             $token = $_POST['csrf'];
-        } elseif (isset($_GET['csrf'])) {
-            $token = $_GET['csrf'];
-        } elseif (isset($_SERVER['HTTP_X_CSRF_TOKEN'])) {
+        }
+
+        // 2. Fall back to the header used by AJAX/fetch calls.
+        elseif (isset($_SERVER['HTTP_X_CSRF_TOKEN'])) {
             $token = $_SERVER['HTTP_X_CSRF_TOKEN'];
         }
-        
+
+        // No token supplied through an allowed channel.
         if (empty($token)) {
             return false;
         }
-        
+
+        // Validate against the stored session token.
         return self::validateToken($token);
     }
     
@@ -109,11 +117,10 @@ class CsrfProtection {
      */
     public static function requireValidToken(): void {
         if (!self::checkRequest()) {
+            // Re-read the submitted token for logging — POST body or header only.
             $token = '';
             if (isset($_POST['csrf'])) {
                 $token = $_POST['csrf'];
-            } elseif (isset($_GET['csrf'])) {
-                $token = $_GET['csrf'];
             } elseif (isset($_SERVER['HTTP_X_CSRF_TOKEN'])) {
                 $token = $_SERVER['HTTP_X_CSRF_TOKEN'];
             }

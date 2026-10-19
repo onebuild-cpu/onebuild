@@ -120,11 +120,14 @@ class Model
 
     /**
      * Insert new record
+     * Column names are validated before being interpolated into SQL,
+     * so callers can safely build the data array dynamically.
      */
     public function insert(array $data): int
     {
         $table = $this->validateTable($this->table);
-        
+
+        // Auto-fill created_at / updated_at when timestamps are enabled.
         if ($this->timestamps) {
             $createdAt = 'created_at';
             $updatedAt = 'updated_at';
@@ -136,7 +139,16 @@ class Model
             }
         }
 
-        $columns = array_keys($data);
+        // Reject any column name that is not a plain identifier.
+        // This prevents SQL injection through attacker-controlled keys.
+        foreach ($data as $key => $value) {
+            if (!preg_match('/^[a-zA-Z0-9_]+$/', $key)) {
+                throw new Exception("Invalid column name: $key");
+            }
+        }
+
+        // Build the INSERT statement from the validated column names.
+        $columns      = array_keys($data);
         $placeholders = array_map(fn($c) => ':' . $c, $columns);
 
         $sql = "INSERT INTO {$table} (" . implode(',', $columns) . ")
@@ -144,7 +156,7 @@ class Model
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($data);
-        
+
         return (int) $this->pdo->lastInsertId();
     }
 

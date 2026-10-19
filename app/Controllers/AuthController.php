@@ -10,8 +10,10 @@ use App\Core\Controller;
 use App\Models\UserModel;
 use App\Core\CsrfProtection;
 use App\Core\RateLimiter;
+use App\Core\RateLimitException;
 use App\Core\Validator;
 use App\Core\SecurityLogger;
+use Exception;
 
 /**
  * AuthController manages authentication flows
@@ -21,6 +23,9 @@ class AuthController extends Controller
     /** @var UserModel User model instance */
     private UserModel $model;
 
+    /** @var RateLimiter Rate limiter instance (DB-backed) */
+    private RateLimiter $rateLimiter;
+
     /**
      * Constructor
      * 
@@ -29,18 +34,21 @@ class AuthController extends Controller
     public function __construct(PDO $pdo)
     {
         parent::__construct($pdo);
-        $this->model = new UserModel($pdo);
+        $this->model       = new UserModel($pdo);
+        $this->rateLimiter = new RateLimiter($pdo);
     }
 
     /**
      * Display registration form
      * 
+     * Commented out because registration can only be done by root/admin
+     * 
      * @return void
      */
-    public function showRegister(): void
-    {
-        $this->view('auth/register', ['pageTitle' => 'Register']);
-    }
+    // public function showRegister(): void
+    // {
+    //     $this->view('auth/register', ['pageTitle' => 'Register']);
+    // }
 
     /**
      * Display login form
@@ -55,71 +63,79 @@ class AuthController extends Controller
     /**
      * Process user registration
      * Validates input, checks CSRF, enforces rate limiting
-     * 
+     * Commented out because registration can only be done by root/admin
      * @return void
      */
-    public function register(): void
-    {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->redirect('/register');
-            return;
-        }
+    // public function register(): void
+    // {
+    //     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    //         $this->redirect('/register');
+    //         return;
+    //     }
 
-        // Rate limiting: 3 attempts per hour
-        RateLimiter::consume('register', 'register');
+    //     // Rate limiting: 3 attempts per hour.
+    //     // Throws RateLimitException when the caller has exceeded the budget.
+    //     try {
+    //         $this->rateLimiter->consume('register', 'register');
+    //     } catch (RateLimitException $e) {
+    //         $wait = RateLimiter::formatRetryAfter($e->getRetryAfter());
+    //         $_SESSION['error'] = "Too many registration attempts. Please try again in {$wait}.";
+    //         $this->redirect('/register');
+    //         return;
+    //     }
 
-        // CSRF protection
-        CsrfProtection::requireValidToken();
+    //     // CSRF protection
+    //     CsrfProtection::requireValidToken();
 
-        $phone = Validator::sanitize($_POST['phone'] ?? '', 50);
-        $password = $_POST['password'] ?? '';
-        $confirm = $_POST['password_confirm'] ?? '';
+    //     $phone = Validator::sanitize($_POST['phone'] ?? '', 50);
+    //     $password = $_POST['password'] ?? '';
+    //     $confirm = $_POST['password_confirm'] ?? '';
 
-        // Validate phone
-        if (empty($phone)) {
-            $_SESSION['error'] = 'Phone number is required.';
-            $this->redirect('/register');
-            return;
-        }
+    //     // Validate phone
+    //     if (empty($phone)) {
+    //         $_SESSION['error'] = 'Phone number is required.';
+    //         $this->redirect('/register');
+    //         return;
+    //     }
 
-        if (!Validator::phone($phone)) {
-            $_SESSION['error'] = 'Invalid phone number format. Use E.164 format (e.g., +628123456789).';
-            $this->redirect('/register');
-            return;
-        }
+    //     if (!Validator::phone($phone)) {
+    //         $_SESSION['error'] = 'Invalid phone number format. Use E.164 format (e.g., +628123456789).';
+    //         $this->redirect('/register');
+    //         return;
+    //     }
 
-        // Validate password strength
-        $pwCheck = Validator::passwordStrength($password);
-        if (!$pwCheck['valid']) {
-            $_SESSION['error'] = implode('; ', $pwCheck['errors']);
-            $this->redirect('/register');
-            return;
-        }
+    //     // Validate password strength
+    //     $pwCheck = Validator::passwordStrength($password);
+    //     if (!$pwCheck['valid']) {
+    //         $_SESSION['error'] = implode('; ', $pwCheck['errors']);
+    //         $this->redirect('/register');
+    //         return;
+    //     }
 
-        // Password match
-        if ($password !== $confirm) {
-            $_SESSION['error'] = 'Passwords do not match.';
-            $this->redirect('/register');
-            return;
-        }
+    //     // Password match
+    //     if ($password !== $confirm) {
+    //         $_SESSION['error'] = 'Passwords do not match.';
+    //         $this->redirect('/register');
+    //         return;
+    //     }
 
-        try {
-            $userId = $this->model->register($phone, $password);
+    //     try {
+    //         $userId = $this->model->register($phone, $password);
             
-            // Log successful registration
-            if (class_exists(SecurityLogger::class)) {
-                $logger = new SecurityLogger();
-                $logger->logAuth('register', true, ['user_id' => $userId, 'phone' => $phone]);
-            }
+    //         // Log successful registration
+    //         if (class_exists(SecurityLogger::class)) {
+    //             $logger = new SecurityLogger();
+    //             $logger->logAuth('register', true, ['user_id' => $userId, 'phone' => $phone]);
+    //         }
             
-            $_SESSION['success'] = 'Registered! Please sign in.';
-            CsrfProtection::invalidateToken();
-            $this->redirect('/login');
-        } catch (Exception $e) {
-            $_SESSION['error'] = $e->getMessage();
-            $this->redirect('/register');
-        }
-    }
+    //         $_SESSION['success'] = 'Registered! Please sign in.';
+    //         CsrfProtection::invalidateToken();
+    //         $this->redirect('/login');
+    //     } catch (Exception $e) {
+    //         $_SESSION['error'] = $e->getMessage();
+    //         $this->redirect('/register');
+    //     }
+    // }
 
     /**
      * Process user login
@@ -134,8 +150,16 @@ class AuthController extends Controller
             return;
         }
 
-        // Rate limiting: 5 attempts per 5 minutes
-        RateLimiter::consume('login', 'login');
+        // Rate limiting: 5 attempts per 5 minutes.
+        // Throws RateLimitException when the caller has exceeded the budget.
+        try {
+            $this->rateLimiter->consume('login', 'login');
+        } catch (RateLimitException $e) {
+            $wait = RateLimiter::formatRetryAfter($e->getRetryAfter());
+            $_SESSION['error'] = "Too many login attempts. Please try again in {$wait}.";
+            $this->redirect('/login');
+            return;
+        }
 
         // CSRF protection
         CsrfProtection::requireValidToken();
@@ -160,7 +184,7 @@ class AuthController extends Controller
         
         if ($user) {
             // Clear rate limit on successful login
-            RateLimiter::clear('login', 'login');
+            $this->rateLimiter->clear('login', 'login');
 
             // Log successful login
             if (class_exists(SecurityLogger::class)) {
@@ -202,8 +226,14 @@ class AuthController extends Controller
      */
     public function logout(): void
     {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect('/dashboard');
+            return;
+        }
+        \App\Core\CsrfProtection::requireValidToken();
+
         $message = 'You have been signed out.';
-        
+
         $_SESSION = [];
         if (ini_get("session.use_cookies")) {
             $params = session_get_cookie_params();
@@ -218,27 +248,5 @@ class AuthController extends Controller
         CsrfProtection::invalidateToken();
         $_SESSION['success'] = $message;
         $this->redirect('/login');
-    }
-
-    /**
-     * Clear rate limit for current session
-     * Used for testing or after lockout
-     * 
-     * @return void
-     */
-    public function clearRateLimit(): void
-    {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-        
-        foreach ($_SESSION as $key => $value) {
-            if (str_starts_with($key, 'ratelimit_')) {
-                unset($_SESSION[$key]);
-            }
-        }
-        
-        $_SESSION['success'] = 'Rate limit cleared. You can now register.';
-        $this->redirect('/register');
     }
 }

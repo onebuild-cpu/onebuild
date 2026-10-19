@@ -7,12 +7,15 @@ $nonce = '';
 if (isset($GLOBALS['csp_nonce'])) {
     $nonce = $GLOBALS['csp_nonce'];
 }
-$pageTitle = $pageTitle ?? 'Profile';
-$metaDescription = $metaDescription ?? 'User Profile';
-$currentPage = 'profile';
-$user = $user ?? [];
-$error = $error ?? '';
-$success = $success ?? '';
+// Set a default page title only if the controller did not provide one
+if (!isset($pageTitle)) {
+    $pageTitle = 'OneBuild PHP MVC Framework';
+}
+
+// Set a default meta description only if the controller did not provide one
+if (!isset($metaDescription)) {
+     $metaDescription = 'OneBuild Description';
+}
 ?>
 <?php require_once __DIR__ . '/../layouts/header.php'; ?>
 <?php require_once __DIR__ . '/../layouts/navbar.php'; ?>
@@ -24,7 +27,7 @@ $success = $success ?? '';
         <?php require_once __DIR__ . '/_sidebar.php'; ?>
 
         <!-- Main content -->
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+        <section class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1 class="h2">Profile</h1>
             </div>
@@ -116,7 +119,7 @@ $success = $success ?? '';
                             <h5 class="card-title mb-0">Change Password</h5>
                         </div>
                         <div class="card-body">
-                            <form method="POST" action="<?= $base ?>/dashboard/profile" class="needs-validation" novalidate>
+                            <form id="changePasswordForm" method="POST" action="<?= $base ?>/dashboard/profile" class="needs-validation" novalidate>
                                 <input type="hidden" name="action" value="change_password">
                                 <?= \App\Core\CsrfProtection::getHiddenInput() ?>
                                 <div class="mb-3">
@@ -178,7 +181,7 @@ $success = $success ?? '';
                     </div>
                 </div>
             </div>
-        </main>
+        </section>
     </div>
 </div>
 
@@ -215,7 +218,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Password match validation
-    const changePasswordForm = document.querySelector('form[action*="action=change_password"]');
+    const changePasswordForm = document.getElementById('changePasswordForm');
     if (changePasswordForm) {
         const newPassword = changePasswordForm.querySelector('#new_password');
         const confirmPassword = changePasswordForm.querySelector('#confirm_password');
@@ -245,7 +248,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (img) {
                         img.src = e.target.result;
                     } else if (placeholder) {
-                        placeholder.innerHTML = `<img src="${e.target.result}" alt="Avatar Preview" class="rounded-circle avatar-lg" nonce="${nonce}">`;
+                        placeholder.innerHTML = `<img src="${e.target.result}" alt="Avatar Preview" class="rounded-circle avatar-lg">`;
                     }
                 };
                 reader.readAsDataURL(file);

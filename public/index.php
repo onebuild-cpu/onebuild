@@ -76,24 +76,19 @@ $router = new \App\Core\Router($pdo);
 $router->addRoute('', 'HomeController', 'index');
 
 // Auth routes
-$router->addRoute('register', 'AuthController', 'showRegister');  // GET /register
-$router->addRoute('login', 'AuthController', 'showLogin');        // GET /login
-$router->addRoute('register/submit', 'AuthController', 'register');      // POST /register
-$router->addRoute('login/submit', 'AuthController', 'login');            // POST /login
-$router->addRoute('logout', 'AuthController', 'logout');          // GET /logout
+// $router->addRoute('register', 'AuthController', 'showRegister');        // GET /register
+// $router->addRoute('login', 'AuthController', 'showLogin');              // GET /login
+// $router->addRoute('register/submit', 'AuthController', 'register');     // POST /register
+// $router->addRoute('login/submit', 'AuthController', 'login');           // POST /login
+// $router->addRoute('logout', 'AuthController', 'logout');                // GET /logout
+// Auth routes with registration is now dashboard-only
+$router->addRoute('login', 'AuthController', 'showLogin');              // GET /login
+$router->addRoute('login/submit', 'AuthController', 'login');           // POST /login
+$router->addRoute('logout', 'AuthController', 'logout');                // POST /logout
 
 // Protected route example
 $router->addRoute('dashboard', 'DashboardController', 'index');
 $router->addRoute('dashboard/profile', 'DashboardController', 'profile');
-
-// Products CRUD
-$router->addRoute('products',              'ProductController', 'index');
-$router->addRoute('products/create',       'ProductController', 'create');
-$router->addRoute('products/store',        'ProductController', 'store');
-$router->addRoute('products/edit/(\d+)',   'ProductController', 'edit');
-$router->addRoute('products/update/(\d+)', 'ProductController', 'update');
-$router->addRoute('products/delete/(\d+)', 'ProductController', 'delete');
-$router->addRoute('product/([a-z0-9\-]+)', 'ProductController', 'show');
 
 // Dispatch request - FIXED FOR SUBDIRECTORY
 $requestUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);

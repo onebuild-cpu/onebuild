@@ -17,7 +17,7 @@ if ($isProduction) {
     error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT);
     ini_set('display_errors', '0');
     ini_set('log_errors', '1');
-    ini_set('error_log', __DIR__ . '/../../../storage/logs/php_errors.log');
+    ini_set('error_log', __DIR__ . '/../../storage/logs/php_errors.log');
 
     set_error_handler(function ($severity, $message, $file, $line) {
         if (!(error_reporting() & $severity)) {
@@ -83,6 +83,9 @@ if (!isset($GLOBALS['csp_nonce'])) {
     $GLOBALS['csp_nonce'] = base64_encode(random_bytes(16));
 }
 
+// Load security configuration early so $isLocalhost is available below
+$securityConfig = require __DIR__ . '/../../config/security.php';
+
 // Utility: check if a header already exists (case-insensitive)
 if (!function_exists('header_exists')) {
     function header_exists($name) {
@@ -106,26 +109,24 @@ if (!function_exists('safe_header')) {
     }
 }
 
-// Detect localhost
+// Detect the raw HTTP host (used for base URL and HTTPS redirect)
 $httpHost = '';
 if (isset($_SERVER['HTTP_HOST'])) {
     $httpHost = $_SERVER['HTTP_HOST'];
 }
-$isLocalhost = in_array($httpHost, [
-    'localhost',
-    '127.0.0.1',
-    'aitravelr.local',
-    'crm.verola.co.test',
-    'onebuild.test',
-    'www.onebuild.test',
-    'localhost:8080',
-    '127.0.0.1:8080',
-]);
+if (!preg_match('/^[a-zA-Z0-9.\-:\[\]]+$/', $httpHost)) {
+    $httpHost = 'localhost';
+}
 
+// Localhost detection comes from config/security.php — single source of truth
+$isLocalhost = $securityConfig['is_localhost'];
+
+// Detect HTTPS (direct or via reverse proxy)
 $isHttps = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
 if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
     $isHttps = true;
 }
+// ------------------------------------------------------------------
 
 // Force HTTPS redirect (only in production, not localhost, not already HTTPS)
 if ($isProduction && !$isLocalhost && !$isHttps) {
@@ -252,9 +253,6 @@ safe_header("Content-Security-Policy: $csp");
 
 // Report-To header for modern CSP reporting
 safe_header('Report-To: {"group":"csp-endpoint","max_age":10886400,"endpoints":[{"url":"/csp-report"}]}');
-
-// Load Security Configuration
-$securityConfig = require __DIR__ . '/../../config/security.php';
 
 // Define base URL
 $protocol = $isHttps ? 'https' : 'http';

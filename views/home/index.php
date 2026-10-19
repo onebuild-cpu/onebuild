@@ -2,8 +2,9 @@
 <?php require_once __DIR__ . '/../layouts/navbar.php'; ?>
 
 <div class="container">
-    <h1>Hi</h1>
-    <p>Welcome to OneBuild PHP MVC Framework</p>
+    <h1>Hi. Welcome to OneBuild PHP MVC Framework</h1>
+
+    <h2>A very basic-simple PHP Framework with Bootstrap and JQuery installed into it. This framework is aimed for user that needs a simple PHP webapps that just "works".</h2>
     
     <p>Lorem ipsum dolor sit amet, cillum laborum ad exercitation id. Nulla do occaecat elit laboris qui labore excepteur officia sunt elit reprehenderit laboris. Et adipiscing aute mollit voluptate adipiscing nostrud proident magna ex enim. Ullamco mollit proident in in enim et esse.</p>
 

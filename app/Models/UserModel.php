@@ -3,10 +3,18 @@ namespace App\Models;
 
 use App\Core\Model;
 use PDO;
+use Exception;
 
 class UserModel extends Model {
     protected string $table = 'users';
 
+    private function passwordAlgorithm(): string {
+        if (defined('PASSWORD_ARGON2ID')) {
+            return PASSWORD_ARGON2ID;
+        }
+        return PASSWORD_DEFAULT;
+    }
+    
     /**
      * Normalize phone number to E.164 format (+628123456789)
      */
@@ -35,7 +43,7 @@ class UserModel extends Model {
         return $phone;
     }
 
-    public function register(string $phone, string $plainPassword, string $role = 'user'): int {
+        public function register(string $phone, string $plainPassword, string $role = 'user'): int {
         // Validate password
         if (strlen($plainPassword) < 8) {
             throw new Exception('Password must be at least 8 characters');
@@ -54,13 +62,13 @@ class UserModel extends Model {
         }
 
         // Whitelist role
-        $allowedRoles = ['user', 'admin', 'editor'];
+        $allowedRoles = ['root', 'admin', 'user'];
         if (!in_array($role, $allowedRoles, true)) {
             $role = 'user';
         }
 
         // Hash & store
-        $hash = password_hash($plainPassword, PASSWORD_ARGON2ID);
+        $hash = password_hash($plainPassword, $this->passwordAlgorithm());
         return $this->insert([
             'phone' => $phone,
             'password' => $hash,
@@ -82,10 +90,14 @@ class UserModel extends Model {
             $passwordHash = $user['password'];
             unset($user['password']);
             
-            if (password_needs_rehash($passwordHash, PASSWORD_ARGON2ID)) {
-                $newHash = password_hash($plainPassword, PASSWORD_ARGON2ID);
+            // Rehash if the algorithm or cost has changed
+            if (password_needs_rehash($passwordHash, $this->passwordAlgorithm())) {
+                $newHash = password_hash($plainPassword, $this->passwordAlgorithm());
                 $this->update($user['id'], ['password' => $newHash]);
             }
+            
+            // Update the last login timestamp
+            $this->update($user['id'], ['last_login_at' => date('Y-m-d H:i:s')]);
             
             return $user;
         }
@@ -101,33 +113,92 @@ class UserModel extends Model {
     }
 
     public function updateUsername(int $id, string $username): bool {
+        $username = trim($username);
+
         if ($username === '') {
             return $this->update($id, ['username' => null]);
         }
-        
+
+        $valid = preg_match('/^[a-zA-Z0-9_]{3,50}$/', $username);
+        if (!$valid) {
+            throw new Exception('Username must be 3-50 characters, using only letters, numbers, and underscores');
+        }
+
         $existing = $this->queryOne("SELECT id FROM {$this->table} WHERE username = ? AND id != ?", [$username, $id]);
         if ($existing) {
             throw new Exception('Username already taken');
         }
-        
+
         return $this->update($id, ['username' => $username]);
     }
 
+    /**
+     * Change a user's password after verifying the current one.
+     * Enforces the same strength policy as registration so the two paths
+     * cannot diverge.
+     */
     public function changePassword(int $id, string $currentPassword, string $newPassword): bool {
+        // Load the current row and verify the old password.
         $user = $this->findById($id);
         if (!$user || !password_verify($currentPassword, $user['password'])) {
             throw new Exception('Current password is incorrect');
         }
-        
-        if (strlen($newPassword) < 8) {
-            throw new Exception('New password must be at least 8 characters');
+
+        // Enforce the shared password strength policy.
+        $pwCheck = \App\Core\Validator::passwordStrength($newPassword);
+        if (!$pwCheck['valid']) {
+            throw new Exception(implode('; ', $pwCheck['errors']));
         }
-        
-        $hash = password_hash($newPassword, PASSWORD_ARGON2ID);
+
+        // Hash with Argon2id and persist the new hash.
+        $hash = password_hash($newPassword, $this->passwordAlgorithm());
         return $this->update($id, ['password' => $hash]);
     }
 
     public function updateAvatar(int $id, string $avatarPath): bool {
         return $this->update($id, ['avatar' => $avatarPath]);
+    }
+
+    // =====================================================================
+    // New methods for Phase 3 (Multi-Auth)
+    // =====================================================================
+
+    /**
+     * Update a user's role.
+     * Only intended to be called by Root admins.
+     */
+    public function updateRole(int $id, string $role): bool {
+        $allowedRoles = ['root', 'admin', 'user'];
+
+        // Reject any role not in the whitelist.
+        if (!in_array($role, $allowedRoles, true)) {
+            throw new Exception('Invalid role');
+        }
+
+        return $this->update($id, ['role' => $role]);
+    }
+
+    /**
+     * Mark a user as verified (useful for Phase 5 WhatsApp verification).
+     */
+    public function markVerified(int $id): bool {
+        return $this->update($id, ['is_verified' => 1]);
+    }
+
+    /**
+     * Count how many users have a specific role.
+     * Useful for dashboard statistics.
+     */
+    public function countByRole(string $role): int {
+        $sql = "SELECT COUNT(*) AS c FROM {$this->table} WHERE role = ?";
+        $row = $this->queryOne($sql, [$role]);
+        return (int) $row['c'];
+    }
+
+    /**
+     * Return all users for the management list.
+     */
+    public function findAllUsers(string $orderBy = 'id ASC'): array {
+        return $this->findAll($orderBy);
     }
 }

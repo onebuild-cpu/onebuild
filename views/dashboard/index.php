@@ -7,9 +7,15 @@ $nonce = '';
 if (isset($GLOBALS['csp_nonce'])) {
     $nonce = $GLOBALS['csp_nonce'];
 }
-$pageTitle = $pageTitle ?? 'Dashboard';
-$metaDescription = $metaDescription ?? 'Dashboard';
-$currentPage = 'index';
+// Set a default page title only if the controller did not provide one
+if (!isset($pageTitle)) {
+    $pageTitle = 'OneBuild PHP MVC Framework';
+}
+
+// Set a default meta description only if the controller did not provide one
+if (!isset($metaDescription)) {
+     $metaDescription = 'OneBuild Description';
+}
 ?>
 <?php require_once __DIR__ . '/../layouts/header.php'; ?>
 <?php require_once __DIR__ . '/../layouts/navbar.php'; ?>
@@ -21,7 +27,7 @@ $currentPage = 'index';
         <?php require_once __DIR__ . '/_sidebar.php'; ?>
 
         <!-- Main content -->
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+        <section class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1 class="h2">Dashboard</h1>
             </div>
@@ -36,7 +42,7 @@ $currentPage = 'index';
                     </div>
                 </div>
             </div>
-        </main>
+        </section>
     </div>
 </div>
 

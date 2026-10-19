@@ -69,14 +69,31 @@ class Validator {
 
     /**
      * Validate integer
+     * Accepts int or numeric string. Correctly allows 0.
      */
-    public static function integer(mixed $value, int $min = null, int $max = null): bool {
-        if (!filter_var($value, FILTER_VALIDATE_INT) && !is_int($value)) {
+    public static function integer(mixed $value, ?int $min = null, ?int $max = null): bool {
+        // Reject anything that is not a valid integer representation.
+        // filter_var returns false for non-integers and int(0) for "0" or 0.
+        // We must use strict === false so that 0 is treated as valid.
+        $filtered = filter_var($value, FILTER_VALIDATE_INT);
+        if ($filtered === false) {
             return false;
         }
-        $int = (int)$value;
-        if ($min !== null && $int < $min) return false;
-        if ($max !== null && $int > $max) return false;
+
+        // Cast to int now that we know it is a valid integer value.
+        $int = (int) $filtered;
+
+        // Enforce optional minimum bound.
+        if ($min !== null && $int < $min) {
+            return false;
+        }
+
+        // Enforce optional maximum bound.
+        if ($max !== null && $int > $max) {
+            return false;
+        }
+
+        // Value passed all checks.
         return true;
     }
 

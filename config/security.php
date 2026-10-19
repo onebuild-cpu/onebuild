@@ -12,14 +12,14 @@ if (isset($_SERVER['HTTP_HOST'])) {
     $httpHost = $_SERVER['HTTP_HOST'];
 }
 $isLocalhost = in_array($httpHost, [
-    'localhost', 
-    '127.0.0.1', 
-    'yourdomain.com',
+    'localhost',
+    '127.0.0.1',
+    'onebuild.test',
+    'www.onebuild.test',
+    'gudangpc.test',
+    'www.gudangpc.test',
     'localhost:8080',
     '127.0.0.1:8080',
-    'crm.verola.co.test',
-    'onebuild.test',
-    'www.onebuild.test'
 ]);
 
 $isHTTPS = false;

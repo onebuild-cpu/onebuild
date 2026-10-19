@@ -4,6 +4,7 @@
  * Lightweight .env file parser - no dependencies required
  */
 namespace App\Core;
+use RuntimeException;
 
 class Dotenv
 {

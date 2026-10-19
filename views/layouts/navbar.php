@@ -28,15 +28,26 @@ $requestUri = $GLOBALS['requestUri'] ?? '';
                 <li class="nav-item">
                     <a class="nav-link <?= ($requestUri === '' || $requestUri === '/') ? 'active' : '' ?>" href="<?= $base ?>">Home</a>
                 </li>
+                <?php /*
                 <li class="nav-item">
-                    <a class="nav-link <?= $requestUri === 'products' ? 'active' : '' ?>" href="<?= $base ?>/products">Products</a>
+                    <a class="nav-link" href="#">Products</a>
                 </li>
+                */ ?>
+                <?php /* Commented out because registration can only be done by root/admin
                 <?php if (!isset($_SESSION['user_id']) || $_SESSION['user_id'] == 0): ?>
                     <li class="nav-item">
                         <a class="nav-link <?= $requestUri === 'login' ? 'active' : '' ?>" href="<?= $base ?>/login">Sign In</a>
                     </li>
+                    
                     <li class="nav-item">
                         <a class="nav-link <?= $requestUri === 'register' ? 'active' : '' ?>" href="<?= $base ?>/register">Register</a>
+                    </li>
+                
+                <?php else: ?>
+                */ ?>
+                <?php if (!isset($_SESSION['user_id']) || $_SESSION['user_id'] == 0): ?>
+                    <li class="nav-item">
+                        <a class="nav-link <?= $requestUri === 'login' ? 'active' : '' ?>" href="<?= $base ?>/login">Sign In</a>
                     </li>
                 <?php else: ?>
                     <li class="nav-item">
@@ -59,7 +70,14 @@ $requestUri = $GLOBALS['requestUri'] ?? '';
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="<?= $base ?>/dashboard/profile"><i class="bi bi-person me-2"></i>Profile</a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="<?= $base ?>/logout"><i class="bi bi-box-arrow-right me-2"></i>Sign Out</a></li>
+                            <li>
+                                <form method="POST" action="<?= $base ?>/logout" style="margin:0;">
+                                    <?= \App\Core\CsrfProtection::getHiddenInput() ?>
+                                    <button type="submit" class="dropdown-item" style="background:none; border:none; width:100%; text-align:left;">
+                                        <i class="bi bi-box-arrow-right me-2"></i>Sign Out
+                                    </button>
+                                </form>
+                            </li>
                         </ul>
                     </li>
                 <?php endif; ?>
@@ -67,6 +85,7 @@ $requestUri = $GLOBALS['requestUri'] ?? '';
         </div>
     </div>
 </nav>
+
 <div class="mt-4"></div>
 
 <style nonce="<?= $nonce ?>">
@@ -87,7 +106,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const sidebarToggle = document.getElementById('sidebarToggle');
     const sidebar = document.getElementById('sidebarMenu');
     const overlay = document.getElementById('sidebarOverlay');
-    const base = '<?= $base ?>';
+    const base = <?= json_encode($base) ?>;
     
     function closeSidebar() {
         if (sidebar) sidebar.classList.remove('show');
@@ -127,3 +146,27 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+
+<?php // Open the main content area now that the navbar is done ?>
+<main class="main-content">
+
+    <?php // Render flash messages from session, then clear them ?>
+    <?php if (!empty($_SESSION['success'])): ?>
+        <div class="container mt-3">
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <?= htmlspecialchars($_SESSION['success']) ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        </div>
+        <?php unset($_SESSION['success']); ?>
+    <?php endif; ?>
+
+    <?php if (!empty($_SESSION['error'])): ?>
+        <div class="container mt-3">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <?= htmlspecialchars($_SESSION['error']) ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        </div>
+        <?php unset($_SESSION['error']); ?>
+    <?php endif; ?>
