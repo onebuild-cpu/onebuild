@@ -1,18 +1,26 @@
 # Building Your First Blog with the onebuild PHP Framework
 
-Welcome! This step-by-step guide is designed for non-programmers who want to build a complete Blog using the **onebuild** PHP MVC framework. 
+Welcome! This step-by-step guide is designed for non-programmers who want to build a complete Blog using the **onebuild** PHP MVC framework.
 
 In this tutorial, you will create:
-1. **Database Tables** for Categories and Articles.
-2. **Category CRUD** (Backend) to manage categories.
-3. **Article CRUD** (Backend) with dynamic dynamic slug editing, WebP image upload, and category dropdowns.
-4. **Public Frontend Pages** to display a list of articles and a detailed single-article view.
 
----
+1. **Database Tables** for Categories and Articles.
+
+2. **Helper File** for image handling and generating clean URLs (slugs).
+
+3. **Navigation Bar (Menu)** for header navigation across the website and admin backend.
+
+4. **Category & Article CRUD** (Backend) to create, edit, list, and delete items.
+
+5. **Admin Dashboard Landing Page** to manage everything from one simple location.
+
+6. **Public Frontend Pages** to display a list of articles and detailed single-article views.
 
 ## Code Rules Used in This Guide
-- **No Ternary Operators**: We use simple `if / else` statements so the logic is easy to read.
-- **Technologies Used**: PHP, Bootstrap 5, jQuery 3, WebP image conversion.
+
+* **No Ternary Operators**: We use explicit `if / else` statements so the logic is easy to read.
+
+* **Technologies Used**: PHP, Bootstrap 5, jQuery 3, WebP image conversion.
 
 ---
 
@@ -122,11 +130,56 @@ class BlogHelper
 
 ---
 
-## Step 3: Create the Models
+## Step 3: Create the Navigation Bar (Menu Layout)
+
+Create a reusable Bootstrap menu bar layout that sits on top of your site so you can easily navigate between public pages and the admin backend.
+
+📁 **File Location:** `app/Views/layouts/navbar.php`
+
+```php
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <div class="container">
+    <a class="navbar-brand fw-bold" href="/">My Fast Blog</a>
+    
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    
+    <div class="collapse navbar-collapse" id="mainNavbar">
+      <!-- Left Menu Items -->
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item">
+          <a class="nav-link" href="/">Home</a>
+        </li>
+      </ul>
+
+      <!-- Right Menu Items (Admin Panel) -->
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle btn btn-outline-light text-white px-3 border-0" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown">
+            ⚙️ Admin Panel
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="/admin">Dashboard Overview</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="/admin/articles">Manage Articles</a></li>
+            <li><a class="dropdown-item" href="/admin/categories">Manage Categories</a></li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+```
+
+---
+
+## Step 4: Create the Models
 
 Models communicate directly with database tables.
 
-### 3.1 Category Model
+### 4.1 Category Model
+
 📁 **File Location:** `app/Models/CategoryModel.php`
 
 ```php
@@ -140,10 +193,21 @@ class CategoryModel extends Model
 {
     protected string $table = 'categories';
     protected array $fillable = ['name', 'slug'];
+
+    /**
+     * Get total count for dashboard statistics.
+     */
+    public function countAll(): int
+    {
+        $sql = "SELECT COUNT(*) as total FROM categories";
+        $result = $this->db->fetch($sql);
+        return (int) ($result['total'] ?? 0);
+    }
 }
 ```
 
-### 3.2 Article Model
+### 4.2 Article Model
+
 📁 **File Location:** `app/Models/ArticleModel.php`
 
 ```php
@@ -159,6 +223,16 @@ class ArticleModel extends Model
     protected array $fillable = ['category_id', 'title', 'slug', 'content', 'image'];
 
     /**
+     * Get total count for dashboard statistics.
+     */
+    public function countAll(): int
+    {
+        $sql = "SELECT COUNT(*) as total FROM articles";
+        $result = $this->db->fetch($sql);
+        return (int) ($result['total'] ?? 0);
+    }
+
+    /**
      * Custom query to get all articles along with their category name.
      */
     public function getAllWithCategory(): array
@@ -167,6 +241,18 @@ class ArticleModel extends Model
                 FROM articles 
                 LEFT JOIN categories ON articles.category_id = categories.id 
                 ORDER BY articles.id DESC";
+        return $this->db->fetchAll($sql);
+    }
+
+    /**
+     * Get recent articles for dashboard overview.
+     */
+    public function getRecent(int $limit = 5): array
+    {
+        $sql = "SELECT articles.*, categories.name AS category_name 
+                FROM articles 
+                LEFT JOIN categories ON articles.category_id = categories.id 
+                ORDER BY articles.id DESC LIMIT " . (int)$limit;
         return $this->db->fetchAll($sql);
     }
 
@@ -192,11 +278,47 @@ class ArticleModel extends Model
 
 ---
 
-## Step 4: Create the Controllers
+## Step 5: Create the Controllers
 
-Controllers connect user actions (forms, button clicks) with the Models and Views.
+### 5.1 Admin Dashboard Controller
 
-### 4.1 Admin Category Controller
+📁 **File Location:** `app/Controllers/AdminDashboardController.php`
+
+```php
+<?php
+
+namespace App\Controllers;
+
+use App\Core\Controller;
+
+class AdminDashboardController extends Controller
+{
+    private $articleModel;
+    private $categoryModel;
+
+    public function __construct()
+    {
+        $this->articleModel = $this->model('ArticleModel');
+        $this->categoryModel = $this->model('CategoryModel');
+    }
+
+    public function index(): void
+    {
+        $totalArticles = $this->articleModel->countAll();
+        $totalCategories = $this->categoryModel->countAll();
+        $recentArticles = $this->articleModel->getRecent(5);
+
+        $this->view('admin/dashboard', [
+            'totalArticles'   => $totalArticles,
+            'totalCategories' => $totalCategories,
+            'recentArticles'  => $recentArticles
+        ]);
+    }
+}
+```
+
+### 5.2 Admin Category Controller
+
 📁 **File Location:** `app/Controllers/AdminCategoryController.php`
 
 ```php
@@ -281,7 +403,8 @@ class AdminCategoryController extends Controller
 }
 ```
 
-### 4.2 Admin Article Controller
+### 5.3 Admin Article Controller
+
 📁 **File Location:** `app/Controllers/AdminArticleController.php`
 
 ```php
@@ -372,7 +495,7 @@ class AdminArticleController extends Controller
             $slug = \App\Helpers\BlogHelper::makeSlug($slug);
         }
 
-        $imageName = $article['image']; // Keep original by default
+        $imageName = $article['image'];
         if (isset($_FILES['image'])) {
             if ($_FILES['image']['error'] === UPLOAD_ERR_OK) {
                 $uploadDir = __DIR__ . '/../../public/uploads/';
@@ -404,7 +527,8 @@ class AdminArticleController extends Controller
 }
 ```
 
-### 4.3 Public Blog Controller
+### 5.4 Public Blog Controller
+
 📁 **File Location:** `app/Controllers/BlogController.php`
 
 ```php
@@ -446,18 +570,103 @@ class BlogController extends Controller
 
 ---
 
-## Step 5: Create the View Files
+## Step 6: Create the View Files
 
-Now, create the HTML views for managing content in the admin dashboard and viewing content on the public side.
+### 6.1 Admin Dashboard Central Hub View
 
-### 5.1 Admin Views (Categories)
+📁 **File Location:** `app/Views/admin/dashboard.php`
+
+```php
+<div class="container my-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Admin Dashboard</h2>
+        <a href="/" target="_blank" class="btn btn-outline-secondary">View Website &rarr;</a>
+    </div>
+
+    <!-- Quick Navigation Bar -->
+    <div class="card mb-4 bg-light">
+        <div class="card-body d-flex justify-content-start gap-2">
+            <a href="/admin" class="btn btn-dark active">Dashboard Overview</a>
+            <a href="/admin/articles" class="btn btn-outline-primary">Manage Articles</a>
+            <a href="/admin/categories" class="btn btn-outline-primary">Manage Categories</a>
+        </div>
+    </div>
+
+    <!-- Summary Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-6 mb-3">
+            <div class="card text-white bg-primary h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Total Articles</h5>
+                    <p class="card-text display-4 fw-bold"><?php echo $totalArticles; ?></p>
+                    <a href="/admin/articles/create" class="btn btn-light btn-sm">+ Add Article</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-3">
+            <div class="card text-white bg-success h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Total Categories</h5>
+                    <p class="card-text display-4 fw-bold"><?php echo $totalCategories; ?></p>
+                    <a href="/admin/categories/create" class="btn btn-light btn-sm">+ Add Category</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Articles Table -->
+    <div class="card">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Recently Added Articles</h5>
+            <a href="/admin/articles" class="btn btn-sm btn-link">View All</a>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Category</th>
+                        <th>Date</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (empty($recentArticles)): ?>
+                        <tr>
+                            <td colspan="4" class="text-center py-3 text-muted">No articles found yet.</td>
+                        </tr>
+                    <?php else: ?>
+                        <?php foreach ($recentArticles as $art): ?>
+                        <tr>
+                            <td><?php echo htmlspecialchars($art['title']); ?></td>
+                            <td><span class="badge bg-info"><?php echo htmlspecialchars($art['category_name'] ?? 'Uncategorized'); ?></span></td>
+                            <td><?php echo $art['created_at']; ?></td>
+                            <td>
+                                <a href="/admin/articles/edit/<?php echo $art['id']; ?>" class="btn btn-sm btn-warning">Edit</a>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+```
+
+### 6.2 Admin Views (Categories)
 
 📁 **Category List View:** `app/Views/admin/categories/index.php`
-```html
+
+```php
 <div class="container my-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Category Management</h2>
-        <a href="/admin/categories/create" class="btn btn-primary">Add New Category</a>
+        <div>
+            <a href="/admin" class="btn btn-outline-secondary me-2">&larr; Dashboard</a>
+            <a href="/admin/categories/create" class="btn btn-primary">Add New Category</a>
+        </div>
     </div>
 
     <table class="table table-bordered table-striped">
@@ -487,7 +696,8 @@ Now, create the HTML views for managing content in the admin dashboard and viewi
 ```
 
 📁 **Category Create View:** `app/Views/admin/categories/create.php`
-```html
+
+```php
 <div class="container my-5" style="max-width: 600px;">
     <h2>Create New Category</h2>
     <form action="/admin/categories/store" method="POST">
@@ -513,7 +723,8 @@ $('#cat-name').on('keyup', function() {
 ```
 
 📁 **Category Edit View:** `app/Views/admin/categories/edit.php`
-```html
+
+```php
 <div class="container my-5" style="max-width: 600px;">
     <h2>Edit Category</h2>
     <form action="/admin/categories/update/<?php echo $category['id']; ?>" method="POST">
@@ -531,16 +742,18 @@ $('#cat-name').on('keyup', function() {
 </div>
 ```
 
----
-
-### 5.2 Admin Views (Articles)
+### 6.3 Admin Views (Articles)
 
 📁 **Article List View:** `app/Views/admin/articles/index.php`
-```html
+
+```php
 <div class="container my-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Article Management</h2>
-        <a href="/admin/articles/create" class="btn btn-primary">Create Article</a>
+        <div>
+            <a href="/admin" class="btn btn-outline-secondary me-2">&larr; Dashboard</a>
+            <a href="/admin/articles/create" class="btn btn-primary">Create Article</a>
+        </div>
     </div>
 
     <table class="table table-bordered table-striped">
@@ -578,7 +791,8 @@ $('#cat-name').on('keyup', function() {
 ```
 
 📁 **Article Create View:** `app/Views/admin/articles/create.php`
-```html
+
+```php
 <div class="container my-5" style="max-width: 800px;">
     <h2>Create New Article</h2>
     <form action="/admin/articles/store" method="POST" enctype="multipart/form-data">
@@ -626,7 +840,8 @@ $('#article-title').on('keyup', function() {
 ```
 
 📁 **Article Edit View:** `app/Views/admin/articles/edit.php`
-```html
+
+```php
 <div class="container my-5" style="max-width: 800px;">
     <h2>Edit Article</h2>
     <form action="/admin/articles/update/<?php echo $article['id']; ?>" method="POST" enctype="multipart/form-data">
@@ -672,12 +887,11 @@ $('#article-title').on('keyup', function() {
 </div>
 ```
 
----
-
-### 5.3 Public Frontend Views
+### 6.4 Public Frontend Views
 
 📁 **Public Article List Page:** `app/Views/blog/index.php`
-```html
+
+```php
 <div class="container my-5">
     <h1 class="mb-4">Latest Blog Posts</h1>
     <div class="row">
@@ -705,7 +919,8 @@ $('#article-title').on('keyup', function() {
 ```
 
 📁 **Single Article Detail View:** `app/Views/blog/show.php`
-```html
+
+```php
 <div class="container my-5" style="max-width: 800px;">
     <a href="/" class="btn btn-outline-secondary mb-3">&larr; Back to Articles</a>
     
@@ -725,9 +940,9 @@ $('#article-title').on('keyup', function() {
 
 ---
 
-## Step 6: Register Routes
+## Step 7: Register Routes
 
-Finally, open your framework routing file (`routes/web.php` or `public/index.php` depending on your setup) and register all endpoints:
+Open your framework routing file (`routes/web.php`) and add the main `/admin` route along with all action endpoints:
 
 📁 **File Location:** `routes/web.php`
 
@@ -737,6 +952,9 @@ use App\Core\Router;
 // Public Routes
 Router::get('/', 'BlogController@index');
 Router::get('/article/{slug}', 'BlogController@show');
+
+// Admin Dashboard Overview Route
+Router::get('/admin', 'AdminDashboardController@index');
 
 // Admin Category Routes
 Router::get('/admin/categories', 'AdminCategoryController@index');
@@ -757,9 +975,10 @@ Router::get('/admin/articles/delete/{id}', 'AdminArticleController@delete');
 
 ---
 
-## Testing Your New Blog
+## Testing Your Complete Dashboard Flow
 
-1. Visit **`http://localhost/admin/categories`** to create your first few categories.
-2. Visit **`http://localhost/admin/articles`** to upload images and create blog posts.
-3. Visit **`http://localhost/`** to view your public home page showing all article cards.
-4. Click **Read Full Article** to visit the detail page with clean dynamic URLs (`/article/your-post-title`).
+1. **Include Navbar**: Simply `require` or include `app/Views/layouts/navbar.php` inside your primary layout header or at the top of your page views.
+2. **Dashboard Home**: Go to **`http://localhost/admin`** to see your main dashboard summary cards and total counts.
+3. **Category Management**: Click **Manage Categories** or go to `http://localhost/admin/categories` to add, edit, or remove categories.
+4. **Article Management**: Click **Manage Articles** or go to `http://localhost/admin/articles` to write posts, auto-generate WebP images, edit dynamic slugs, or delete old articles.
+5. **View Website**: Click **View Website** at the top right of your dashboard to jump to the public homepage and check how your articles look to real visitors.
