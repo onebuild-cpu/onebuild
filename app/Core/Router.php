@@ -107,7 +107,8 @@ class Router
             $pageTitle = '404 Not Found';
             require $file;
         } else {
-            echo '<!DOCTYPE html><html><head><title>404 Not Found</title></head><body><h1>404 - Page Not Found</h1><p>The requested URL was not found on this server.</p></body></html>';
+            echo '<!DOCTYPE html><html><head><title>404 Not Found</title></head><body>
+            <h1>404 - Page Not Found</h1><p>The requested URL was not found on this server.</p></body></html>';
         }
         exit();
     }
