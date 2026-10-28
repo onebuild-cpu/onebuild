@@ -3,8 +3,11 @@
 .env.local
 .env.production
 
+# Allow the database folder and SQL files
+!database/
+!database/initial_database.sql
+
 # Database backups
-*.sql
 *.dump
 
 # Logs
