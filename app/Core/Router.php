@@ -102,14 +102,13 @@ class Router
     protected function show404(): void
     {
         http_response_code(404);
-        echo '<!DOCTYPE html>
-            <html>
-            <head><title>404 Not Found</title></head>
-            <body>
-                <h1>404 - Page Not Found</h1>
-                <p>The requested URL was not found on this server.</p>
-            </body>
-            </html>';
+        $file = $this->basePath . '/views/errors/404.php';
+        if (file_exists($file)) {
+            $pageTitle = '404 Not Found';
+            require $file;
+        } else {
+            echo '<!DOCTYPE html><html><head><title>404 Not Found</title></head><body><h1>404 - Page Not Found</h1><p>The requested URL was not found on this server.</p></body></html>';
+        }
         exit();
     }
 }

@@ -27,22 +27,6 @@ if ($isProduction) {
         return true;
     });
 
-    set_exception_handler(function ($exception) {
-        error_log("Uncaught Exception: " . $exception->getMessage() . " in " . $exception->getFile() . ":" . $exception->getLine());
-        http_response_code(500);
-        if (!headers_sent()) {
-            header('Content-Type: text/html; charset=UTF-8');
-        }
-        echo '<!DOCTYPE html><html><head><title>Server Error</title>'
-           . '<meta name="viewport" content="width=device-width, initial-scale=1">'
-           . '<style>body{font-family:sans-serif;max-width:600px;margin:50px auto;padding:20px;text-align:center}'
-           . 'h1{color:#dc3545}</style></head><body>'
-           . '<h1>500 - Internal Server Error</h1>'
-           . '<p>Something went wrong. Please try again later.</p>'
-           . '</body></html>';
-        exit();
-    });
-
     register_shutdown_function(function () {
         $error = error_get_last();
         if ($error && in_array($error['type'], [E_ERROR, E_CORE_ERROR, E_COMPILE_ERROR, E_PARSE])) {
@@ -272,3 +256,27 @@ $GLOBALS['is_localhost'] = $isLocalhost;
 $GLOBALS['is_https'] = $isHttps;
 $GLOBALS['is_production'] = $isProduction;
 $GLOBALS['app_env'] = $appEnv;
+
+// Unified exception handler (loads views/errors/500.php cleanly)
+set_exception_handler(function ($exception) {
+    error_log("Uncaught Exception: " . $exception->getMessage() . " in " . $exception->getFile() . ":" . $exception->getLine());
+    http_response_code(500);
+    if (!headers_sent()) {
+        header('Content-Type: text/html; charset=UTF-8');
+    }
+    
+    $file = __DIR__ . '/../../views/errors/500.php';
+    if (file_exists($file)) {
+        $pageTitle = '500 Internal Server Error';
+        require $file;
+    } else {
+        echo '<!DOCTYPE html><html><head><title>Server Error</title>'
+             . '<meta name="viewport" content="width=device-width, initial-scale=1">'
+             . '<style>body{font-family:sans-serif;max-width:600px;margin:50px auto;padding:20px;text-align:center}'
+             . 'h1{color:#dc3545}</style></head><body>'
+             . '<h1>500 - Internal Server Error</h1>'
+             . '<p>Something went wrong. Please try again later.</p>'
+             . '</body></html>';
+    }
+    exit();
+});
