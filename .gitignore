@@ -14,6 +14,7 @@ logs/*.log
 # Cache files
 cache/
 tmp/
+bin/*.md
 
 # IDE files
 .vscode/
