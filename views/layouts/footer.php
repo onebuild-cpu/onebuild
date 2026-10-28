@@ -25,8 +25,8 @@
             <p>&copy; <?= date('Y') ?> - Ready to build an amazing website !!!</p>
         </div>
     </footer>
-    <script src="<?= $base ?>/assets/js/jquery.slim.min.js" nonce="<?= $nonce ?>"></script>
-    <script src="<?= $base ?>/assets/js/bootstrap.bundle.min.js" nonce="<?= $nonce ?>"></script>
-    <script src="<?= $base ?>/assets/js/summernote-bs5.min.js" nonce="<?= $nonce ?>"></script>
+    <script src="<?= $base ?>/assets/js/jquery.slim.min.js?v=1.0.1" nonce="<?= $nonce ?>"></script>
+    <script src="<?= $base ?>/assets/js/bootstrap.bundle.min.js?v=1.0.1" nonce="<?= $nonce ?>"></script>
+    <script src="<?= $base ?>/assets/js/summernote-bs5.min.js?v=1.0.1" nonce="<?= $nonce ?>"></script>
 </body>
 </html>

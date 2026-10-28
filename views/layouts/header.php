@@ -26,9 +26,9 @@ if (!isset($metaDescription)) {
     <meta name="description" content="<?= htmlspecialchars($metaDescription) ?>">
     <link rel="icon" type="image/x-icon" href="<?= $base ?>/favicon.ico"> 
 
-    <link rel="stylesheet" href="<?= $base ?>/assets/css/bootstrap-icons.min.css">
-    <link rel="stylesheet" href="<?= $base ?>/assets/css/bootstrap.min.css">
-    <link rel="stylesheet" href="<?= $base ?>/assets/css/summernote-bs5.min.css" nonce="<?= $nonce ?>">
+    <link rel="stylesheet" href="<?= $base ?>/assets/css/bootstrap-icons.min.css?v=1.0.1">
+    <link rel="stylesheet" href="<?= $base ?>/assets/css/summernote-bs5.min.css?v=1.0.1" nonce="<?= $nonce ?>">
+    <link rel="stylesheet" href="<?= $base ?>/assets/css/bootstrap.min.css?v=1.0.1">
     
     <!-- CSP Nonce for inline scripts/styles -->
     <meta name="csp-nonce" content="<?= $nonce ?>">

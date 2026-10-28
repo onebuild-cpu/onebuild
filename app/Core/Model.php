@@ -125,6 +125,11 @@ class Model
      */
     public function insert(array $data): int
     {
+        // GUARD CLAUSE: Prevent "INSERT INTO table () VALUES ()" syntax errors
+        if (empty($data)) {
+            throw new Exception("Cannot insert empty data array into {$this->table}.");
+        }
+
         $table = $this->validateTable($this->table);
 
         // Auto-fill created_at / updated_at when timestamps are enabled.
@@ -166,7 +171,14 @@ class Model
     public function update(int $id, array $data): bool
     {
         $table = $this->validateTable($this->table);
+        
+        // Remove 'id' from data to prevent it from being updated or causing issues
         unset($data['id']);
+
+        // GUARD CLAUSE: Prevent "UPDATE table SET WHERE id = :id" syntax errors
+        if (empty($data)) {
+            throw new Exception("Cannot update record. No valid columns provided.");
+        }
 
         if ($this->timestamps) {
             $data['updated_at'] = date('Y-m-d H:i:s');

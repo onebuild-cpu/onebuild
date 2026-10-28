@@ -159,8 +159,19 @@ class CsrfProtection {
                 $logger->logSuspicious('csrf_token_invalid', 'Invalid or missing CSRF token', $errorDetails);
             }
             
+            //http_response_code(419);
+            //die('CSRF token validation failed');
+
             http_response_code(419);
-            die('CSRF token validation failed');
+            // Instead of die(), render your 404/500 view or a specific 419 view
+            $file = __DIR__ . '/../../views/errors/419.php'; 
+            if (file_exists($file)) {
+                $pageTitle = '419 - Page Expired';
+                require $file;
+            } else {
+                echo '<h1>419 - Page Expired</h1><p>Your session expired. Please go back and try again.</p>';
+            }
+            exit;
         }
     }
     
