@@ -26,24 +26,11 @@ class RateLimiter
         'api'            => ['max' => 60, 'window' => 60],
     ];
 
-    /**
-     * Constructor
-     *
-     * @param PDO $pdo Database connection
-     */
     public function __construct(PDO $pdo)
     {
         $this->pdo = $pdo;
     }
 
-    /**
-     * Check whether the caller is still allowed to attempt the action.
-     * Does not record anything. Use consume() to check and record at once.
-     *
-     * @param string $key    Extra disambiguator (e.g., phone number, or 'login')
-     * @param string $action Action name (login, register, ...)
-     * @return array{allowed: bool, remaining: int, retry_after: int|null}
-     */
     public function check(string $key, string $action = 'login'): array
     {
         $config = self::$limits[$action] ?? ['max' => 10, 'window' => 60];
@@ -54,21 +41,13 @@ class RateLimiter
         $row = $this->fetchRow($bucket, $action);
 
         if ($row === null) {
-            return [
-                'allowed'     => true,
-                'remaining'   => $maxAttempts,
-                'retry_after' => null,
-            ];
+            return ['allowed' => true, 'remaining' => $maxAttempts, 'retry_after' => null];
         }
 
         $now = time();
         $windowStart = (int) $row['window_start'];
         if ($now - $windowStart >= $window) {
-            return [
-                'allowed'     => true,
-                'remaining'   => $maxAttempts,
-                'retry_after' => null,
-            ];
+            return ['allowed' => true, 'remaining' => $maxAttempts, 'retry_after' => null];
         }
 
         $used      = (int) $row['attempt_count'];
@@ -78,21 +57,12 @@ class RateLimiter
         $retryAfter = null;
         if (!$allowed) {
             $retryAfter = $window - ($now - $windowStart);
-            if ($retryAfter < 0) {
-                $retryAfter = 0;
-            }
+            if ($retryAfter < 0) $retryAfter = 0;
         }
 
-        return [
-            'allowed'     => $allowed,
-            'remaining'   => $remaining,
-            'retry_after' => $retryAfter,
-        ];
+        return ['allowed' => $allowed, 'remaining' => $remaining, 'retry_after' => $retryAfter];
     }
 
-    /**
-     * Record one attempt for the given action.
-     */
     public function record(string $key, string $action = 'login'): void
     {
         $config = self::$limits[$action] ?? ['max' => 10, 'window' => 60];
@@ -101,54 +71,29 @@ class RateLimiter
         $row = $this->fetchRow($bucket, $action);
 
         if ($row === null) {
-            $sql = "INSERT INTO rate_limits
-                        (bucket, action, attempt_count, window_start, created_at, updated_at)
-                    VALUES
-                        (:bucket, :action, 1, :window_start, NOW(), NOW())";
+            $sql = "INSERT INTO rate_limits (bucket, action, attempt_count, window_start, created_at, updated_at)
+                    VALUES (:bucket, :action, 1, :window_start, NOW(), NOW())";
             $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([
-                'bucket'       => $bucket,
-                'action'       => $action,
-                'window_start' => time(),
-            ]);
+            $stmt->execute(['bucket' => $bucket, 'action' => $action, 'window_start' => time()]);
             return;
         }
 
-        $now         = time();
+        $now = time();
         $windowStart = (int) $row['window_start'];
         if ($now - $windowStart >= $window) {
-            $sql = "UPDATE rate_limits
-                       SET attempt_count = 1,
-                           window_start  = :window_start,
-                           updated_at    = NOW()
-                     WHERE bucket = :bucket
-                       AND action = :action";
+            $sql = "UPDATE rate_limits SET attempt_count = 1, window_start = :window_start, updated_at = NOW()
+                    WHERE bucket = :bucket AND action = :action";
             $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([
-                'window_start' => $now,
-                'bucket'       => $bucket,
-                'action'       => $action,
-            ]);
+            $stmt->execute(['window_start' => $now, 'bucket' => $bucket, 'action' => $action]);
             return;
         }
 
-        $sql = "UPDATE rate_limits
-                   SET attempt_count = attempt_count + 1,
-                       updated_at    = NOW()
-                 WHERE bucket = :bucket
-                   AND action = :action";
+        $sql = "UPDATE rate_limits SET attempt_count = attempt_count + 1, updated_at = NOW()
+                WHERE bucket = :bucket AND action = :action";
         $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([
-            'bucket' => $bucket,
-            'action' => $action,
-        ]);
+        $stmt->execute(['bucket' => $bucket, 'action' => $action]);
     }
 
-    /**
-     * Check and record in one call.
-     *
-     * @throws RateLimitException
-     */
     public function consume(string $key, string $action = 'login'): void
     {
         $result = $this->check($key, $action);
@@ -171,76 +116,42 @@ class RateLimiter
         $this->record($key, $action);
     }
 
-    /**
-     * Clear the rate limit row for a given key + action.
-     */
     public function clear(string $key, string $action = 'login'): void
     {
         $bucket = $this->getIdentifier($key);
-        $sql = "DELETE FROM rate_limits
-                 WHERE bucket = :bucket
-                   AND action = :action";
+        $sql = "DELETE FROM rate_limits WHERE bucket = :bucket AND action = :action";
         $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([
-            'bucket' => $bucket,
-            'action' => $action,
-        ]);
+        $stmt->execute(['bucket' => $bucket, 'action' => $action]);
     }
 
-    /**
-     * Format a retry-after value into a human-readable string.
-     */
     public static function formatRetryAfter(int $seconds): string
     {
-        if ($seconds < 60) {
-            return $seconds . ' seconds';
-        }
-        if ($seconds < 3600) {
-            $minutes = (int) ceil($seconds / 60);
-            return $minutes . ' minutes';
-        }
-        $hours = (int) ceil($seconds / 3600);
-        return $hours . ' hours';
+        if ($seconds < 60) return $seconds . ' seconds';
+        if ($seconds < 3600) return ((int) ceil($seconds / 60)) . ' minutes';
+        return ((int) ceil($seconds / 3600)) . ' hours';
     }
 
-    /**
-     * Fetch one row from the rate_limits table.
-     */
     private function fetchRow(string $bucket, string $action): ?array
     {
-        $sql = "SELECT attempt_count, window_start
-                  FROM rate_limits
-                 WHERE bucket = :bucket
-                   AND action = :action
-                 LIMIT 1";
+        $sql = "SELECT attempt_count, window_start FROM rate_limits WHERE bucket = :bucket AND action = :action LIMIT 1";
         $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([
-            'bucket' => $bucket,
-            'action' => $action,
-        ]);
+        $stmt->execute(['bucket' => $bucket, 'action' => $action]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
         return $row === false ? null : $row;
     }
 
     /**
-     * Build the identifier used as the `bucket` column.
-     * 
      * SECURE BY DEFAULT: 
-     * 1. If a specific target key (like a phone number) is provided, 
-     *    it becomes the primary identifier. This prevents attackers from 
-     *    bypassing the limit by rotating their IP address.
-     * 2. Otherwise, it falls back to the direct REMOTE_ADDR to prevent 
-     *    HTTP header spoofing (X-Forwarded-For).
+     * 1. If a specific target key (like a phone number) is provided, it becomes the primary identifier.
+     *    This prevents attackers from bypassing the limit by rotating their IP address.
+     * 2. Otherwise, it falls back to the direct REMOTE_ADDR to prevent HTTP header spoofing.
      */
     private function getIdentifier(string $key): string
     {
-        // Generic actions fallback list
         $genericActions = ['login', 'register', 'password_reset', 'api', 'contact'];
         
-        // If the key is NOT a generic action name, treat it as a specific target 
-        // (e.g., a phone number like '+628123456789'). Hash it to keep the 
-        // database bucket length consistent and obscure the PII.
+        // If the key is NOT a generic action name, treat it as a specific target (e.g., a phone number).
+        // Hash it to keep the database bucket length consistent and obscure the PII.
         if (!in_array($key, $genericActions, true)) {
             return hash('sha256', 'target:' . $key);
         }
@@ -250,10 +161,9 @@ class RateLimiter
         $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
         
         /* 
-         * OPTIONAL: If you are strictly behind a trusted reverse proxy 
-         * (like Cloudflare or AWS ALB), you can uncomment the block below.
-         * NEVER enable this if your server is directly exposed to the internet,
-         * as attackers can easily spoof the X-Forwarded-For header.
+         * OPTIONAL: If you are strictly behind a trusted reverse proxy (like Cloudflare), 
+         * you can uncomment the block below. NEVER enable this if your server is directly 
+         * exposed to the internet, as attackers can easily spoof the X-Forwarded-For header.
          * 
          * if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
          *     $ips = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);

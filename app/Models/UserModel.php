@@ -76,17 +76,32 @@ class UserModel extends Model {
         ]);
     }
 
-    public function login(string $phone, string $plainPassword): ?array {
+    /**
+     * Secure login with Timing Attack Prevention
+     */
+    public function login(string $phone, string $plainPassword): ?array 
+    {
         // Normalize phone for lookup
         try {
             $phone = $this->normalizePhone($phone);
         } catch (Exception $e) {
+            // Fail securely: use a dummy hash to prevent timing attacks
+            password_verify($plainPassword, '$argon2id$v=19$m=65536,t=4,p=1$ZmFrZQ$ZmFrZQ');
             return null;
         }
-        
+
         $user = $this->queryOne("SELECT * FROM {$this->table} WHERE phone = ?", [$phone]);
         
-        if ($user && password_verify($plainPassword, $user['password'])) {
+        // SECURITY: Prevent Timing Attacks (User Enumeration)
+        // If the user doesn't exist, we still run password_verify against a dummy hash.
+        $hashToVerify = $user ? $user['password'] : '$argon2id$v=19$m=65536,t=4,p=1$ZmFrZQ$ZmFrZQ';
+        
+        // CRITICAL FIX: Execute password_verify FIRST. 
+        // If we put it inside `if ($user && ...)`, PHP's short-circuit evaluation 
+        // will SKIP it when $user is null, defeating the timing attack prevention!
+        $isPasswordCorrect = password_verify($plainPassword, $hashToVerify);
+        
+        if ($user && $isPasswordCorrect) {
             $passwordHash = $user['password'];
             unset($user['password']);
             
@@ -101,6 +116,7 @@ class UserModel extends Model {
             
             return $user;
         }
+        
         return null;
     }
 

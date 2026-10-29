@@ -15,22 +15,11 @@ use App\Core\Validator;
 use App\Core\SecurityLogger;
 use Exception;
 
-/**
- * AuthController manages authentication flows
- */
 class AuthController extends Controller
 {
-    /** @var UserModel User model instance */
     private UserModel $model;
-
-    /** @var RateLimiter Rate limiter instance (DB-backed) */
     private RateLimiter $rateLimiter;
 
-    /**
-     * Constructor
-     * 
-     * @param PDO $pdo Database connection
-     */
     public function __construct(PDO $pdo)
     {
         parent::__construct($pdo);
@@ -38,111 +27,11 @@ class AuthController extends Controller
         $this->rateLimiter = new RateLimiter($pdo);
     }
 
-    /**
-     * Display registration form
-     * 
-     * Commented out because registration can only be done by root/admin
-     * 
-     * @return void
-     */
-    // public function showRegister(): void
-    // {
-    //     $this->view('auth/register', ['pageTitle' => 'Register']);
-    // }
-
-    /**
-     * Display login form
-     * 
-     * @return void
-     */
     public function showLogin(): void
     {
         $this->view('auth/login', ['pageTitle' => 'Sign In']);
     }
 
-    /**
-     * Process user registration
-     * Validates input, checks CSRF, enforces rate limiting
-     * Commented out because registration can only be done by root/admin
-     * @return void
-     */
-    // public function register(): void
-    // {
-    //     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    //         $this->redirect('/register');
-    //         return;
-    //     }
-
-    //     // Rate limiting: 3 attempts per hour.
-    //     // Throws RateLimitException when the caller has exceeded the budget.
-    //     try {
-    //         $this->rateLimiter->consume('register', 'register');
-    //     } catch (RateLimitException $e) {
-    //         $wait = RateLimiter::formatRetryAfter($e->getRetryAfter());
-    //         $_SESSION['error'] = "Too many registration attempts. Please try again in {$wait}.";
-    //         $this->redirect('/register');
-    //         return;
-    //     }
-
-    //     // CSRF protection
-    //     CsrfProtection::requireValidToken();
-
-    //     $phone = Validator::sanitize($_POST['phone'] ?? '', 50);
-    //     $password = $_POST['password'] ?? '';
-    //     $confirm = $_POST['password_confirm'] ?? '';
-
-    //     // Validate phone
-    //     if (empty($phone)) {
-    //         $_SESSION['error'] = 'Phone number is required.';
-    //         $this->redirect('/register');
-    //         return;
-    //     }
-
-    //     if (!Validator::phone($phone)) {
-    //         $_SESSION['error'] = 'Invalid phone number format. Use E.164 format (e.g., +628123456789).';
-    //         $this->redirect('/register');
-    //         return;
-    //     }
-
-    //     // Validate password strength
-    //     $pwCheck = Validator::passwordStrength($password);
-    //     if (!$pwCheck['valid']) {
-    //         $_SESSION['error'] = implode('; ', $pwCheck['errors']);
-    //         $this->redirect('/register');
-    //         return;
-    //     }
-
-    //     // Password match
-    //     if ($password !== $confirm) {
-    //         $_SESSION['error'] = 'Passwords do not match.';
-    //         $this->redirect('/register');
-    //         return;
-    //     }
-
-    //     try {
-    //         $userId = $this->model->register($phone, $password);
-            
-    //         // Log successful registration
-    //         if (class_exists(SecurityLogger::class)) {
-    //             $logger = new SecurityLogger();
-    //             $logger->logAuth('register', true, ['user_id' => $userId, 'phone' => $phone]);
-    //         }
-            
-    //         $_SESSION['success'] = 'Registered! Please sign in.';
-    //         CsrfProtection::invalidateToken();
-    //         $this->redirect('/login');
-    //     } catch (Exception $e) {
-    //         $_SESSION['error'] = $e->getMessage();
-    //         $this->redirect('/register');
-    //     }
-    // }
-
-    /**
-     * Process user login
-     * Validates credentials, checks CSRF, enforces rate limiting
-     * 
-     * @return void
-     */
     public function login(): void
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -150,24 +39,10 @@ class AuthController extends Controller
             return;
         }
 
-        // Rate limiting: 5 attempts per 5 minutes.
-        // Throws RateLimitException when the caller has exceeded the budget.
-        try {
-            $this->rateLimiter->consume('login', 'login');
-        } catch (RateLimitException $e) {
-            $wait = RateLimiter::formatRetryAfter($e->getRetryAfter());
-            $_SESSION['error'] = "Too many login attempts. Please try again in {$wait}.";
-            $this->redirect('/login');
-            return;
-        }
-
-        // CSRF protection
-        CsrfProtection::requireValidToken();
-
+        // 1. Sanitize and validate input FIRST to save resources
         $phone = Validator::sanitize($_POST['phone'] ?? '', 50);
         $password = $_POST['password'] ?? '';
 
-        // Validate phone
         if (empty($phone)) {
             $_SESSION['error'] = 'Phone number is required.';
             $this->redirect('/login');
@@ -180,26 +55,40 @@ class AuthController extends Controller
             return;
         }
 
+        // 2. Rate limiting: 5 attempts per 5 minutes PER PHONE NUMBER.
+        // By passing $phone instead of 'login', we prevent attackers from 
+        // bypassing the limit by simply rotating their IP address.
+        try {
+            $this->rateLimiter->consume($phone, 'login');
+        } catch (RateLimitException $e) {
+            $wait = RateLimiter::formatRetryAfter($e->getRetryAfter());
+            $_SESSION['error'] = "Too many login attempts for this account. Please try again in {$wait}.";
+            $this->redirect('/login');
+            return;
+        }
+
+        // 3. CSRF protection
+        CsrfProtection::requireValidToken();
+
+        // 4. Attempt login
         $user = $this->model->login($phone, $password);
         
         if ($user) {
-            // Clear rate limit on successful login
-            $this->rateLimiter->clear('login', 'login');
+            // Clear rate limit on successful login so legitimate typos don't haunt the user
+            $this->rateLimiter->clear($phone, 'login');
 
-            // Log successful login
             if (class_exists(SecurityLogger::class)) {
                 $logger = new SecurityLogger();
                 $logger->logAuth('login', true, ['user_id' => $user['id'], 'phone' => $phone]);
             }
 
-            // Set session data
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['role'] = $user['role'];
             $_SESSION['username'] = $user['username'] ?? null;
             $_SESSION['avatar'] = $user['avatar'] ?? null;
             $_SESSION['phone'] = $user['phone'] ?? null;
             
-            // Regenerate session ID for security
+            // Regenerate session ID for security (prevents session fixation)
             session_regenerate_id(true); 
             
             // Regenerate CSRF token after privilege elevation
@@ -207,7 +96,6 @@ class AuthController extends Controller
             
             $this->redirect('/dashboard');
         } else {
-            // Log failed login
             if (class_exists(SecurityLogger::class)) {
                 $logger = new SecurityLogger();
                 $logger->logAuth('login', false, ['phone' => $phone, 'reason' => 'invalid_credentials']);
@@ -218,35 +106,43 @@ class AuthController extends Controller
         }
     }
 
-    /**
-     * Process user logout
-     * Destroys session and regenerates CSRF token
-     * 
-     * @return void
-     */
     public function logout(): void
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->redirect('/dashboard');
             return;
         }
+        
         \App\Core\CsrfProtection::requireValidToken();
 
-        $message = 'You have been signed out.';
-
+        // 1. Unset all session variables immediately
         $_SESSION = [];
+        
+        // 2. Delete the session cookie securely
         if (ini_get("session.use_cookies")) {
             $params = session_get_cookie_params();
-            setcookie(session_name(), '', time() - 42000,
-                $params["path"], $params["domain"],
-                $params["secure"], $params["httponly"]
+            setcookie(
+                session_name(), 
+                '', 
+                time() - 42000,
+                $params["path"], 
+                $params["domain"],
+                $params["secure"], 
+                $params["httponly"],
+                $params["samesite"] ?? 'Lax' // Added for modern browser compliance
             );
         }
+        
+        // 3. Destroy the session data on the server
         session_destroy();
         
+        // 4. Start a fresh session solely to hold the success flash message
         session_start();
-        CsrfProtection::invalidateToken();
-        $_SESSION['success'] = $message;
+        session_regenerate_id(true); // Ensure the new session gets a pristine, unpredictable ID
+        
+        \App\Core\CsrfProtection::invalidateToken();
+        $_SESSION['success'] = 'You have been signed out.';
+        
         $this->redirect('/login');
     }
 }
